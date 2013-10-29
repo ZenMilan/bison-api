@@ -22,6 +22,10 @@ class BisonAPI < Sinatra::Base
     end
   end
 
+  before do
+    response.headers["Access-Control-Allow-Origin"] = "*"
+  end
+
   get '/api/campaigns/?' do
     json settings.DB.collection(settings.collection_name).find.to_a
   end
