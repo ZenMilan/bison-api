@@ -44,7 +44,7 @@ class BisonAPI < Sinatra::Base
     json id: oid.to_s
   end
 
-  delete '/api/campaigns/remove/:id/?' do
+  delete '/api/campaigns/:id/?' do
     settings.DB.collection(settings.collection_name).remove(_id: object_id(params[:id]))
     json success: true
   end
