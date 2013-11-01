@@ -1,2 +1,2 @@
-require './app'
-run BisonAPI
+require './api'
+run Bison::API
