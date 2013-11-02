@@ -9,7 +9,7 @@ module MongoHelpers
 
   def document_by_id id
     id = object_id(id) if String === id
-    settings.DB.collection(settings.collection_name).find_one(_id: id)
+    db.collection("campaigns").find_one(_id: id)
   end
 
   def db
@@ -56,7 +56,7 @@ module Bison
       end
 
       namespace :location do
-        desc "Return all campaigns at certain location"
+        desc "Return all campaigns of a certain location"
 
         get '/:location' do
           db.collection("campaigns").find(location: params[:location]).to_a
