@@ -2,62 +2,68 @@ require 'mongo'
 require 'json'
 require 'grape'
 
+module MongoHelpers
+  def object_id val
+    BSON::ObjectId.from_string(val)
+  end
+
+  def document_by_id id
+    id = object_id(id) if String === id
+    settings.DB.collection(settings.collection_name).find_one(_id: id)
+  end
+
+  def db
+    @db ||= Mongo::Connection.new.db("bison_db", pool_size: 5, timeout: 5)
+  end
+end
+
 module Bison
   class API < Grape::API
     version 'v1', using: :path
     format :json
 
-    helpers do
+    do_not_route_head!
+    do_not_route_options!
 
-      def object_id val
-        BSON::ObjectId.from_string(val)
-      end
+    helpers MongoHelpers
 
-      def document_by_id id
-        id = object_id(id) if String === id
-        settings.DB.collection(settings.collection_name).find_one(_id: id)
-      end
-    end
+    namespace :campaigns do
+      desc "Return a list of all campaigns"
 
-    # configure do
-    #   set :DB, Mongo::Connection.new.db("bison_db", pool_size: 5, timeout: 5)
-    #   set :collection_name, "campaigns"
-    # end
-
-    before do
-      header "Access-Control-Allow-Origin", "*"
-    end
-
-    resource :campaigns do
-      desc "Return all campaigns"
       get do
-        # settings.DB.collection(settings.collection_name).find.to_a
-        { status: 'ok' }
+        db.collection('campaigns').find.to_a
+      end
+
+      desc "Return single campaign"
+
+      get '/:id' do
+        document_by_id(params[:id])
+      end
+
+      desc "Create new campaign"
+
+      post do
+        data = JSON.parse env['api.request.body']
+        oid = db.collection("campaigns").insert(data)
+        { id: oid.to_s }
+      end
+
+      desc "Destroy a campaign by id"
+
+      delete '/:id' do
+        db.collection("campaigns").remove(_id: object_id(params[:id]))
+        { success: true }
+      end
+
+      namespace :location do
+        desc "Return all campaigns at certain location"
+
+        get '/:location' do
+          db.collection("campaigns").find(location: params[:location]).to_a
+        end
       end
     end
-
   end
 end
-#   get '/api/campaigns/?' do
-#     json settings.DB.collection(settings.collection_name).find.to_a
-#   end
 
-#   get '/api/campaigns/:id/?' do
-#     json document_by_id(params[:id])
-#   end
-
-#   get '/api/campaigns/location/:location/?' do
-#     json settings.DB.collection(settings.collection_name).find(location: params[:location]).to_a
-#   end
-
-#   post '/api/campaigns' do
-#     data = JSON.parse(request.body.read)
-#     oid = settings.DB.collection(settings.collection_name).insert(data)
-#     json id: oid.to_s
-#   end
-
-#   delete '/api/campaigns/:id/?' do
-#     settings.DB.collection(settings.collection_name).remove(_id: object_id(params[:id]))
-#     json success: true
-#   end
-# end
+puts Bison::API::routes
